@@ -1,6 +1,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const { v4: uuidv4 } = require('uuid');
 
 let notes = require('./db/db.json');
 
@@ -13,29 +14,60 @@ app.use(express.urlencoded({extended: true}));
 app.use(express.static('public'));
 
 app.get('/api/notes', (req,res) => {
-    res.json(notes);
+    console.log('GET REQUEST');
+    res.json(JSON.parse(fs.readFileSync('./db/db.json')));
 });
 
 app.post('/api/notes', (req,res) => {
+    console.log("POST REQUEST");
     // console.log(req);
     let noteObject = {
+        id: uuidv4(),
         title: req.body.title,
         text: req.body.text
     };
-    // console.log(noteObject);
     let db = JSON.parse(fs.readFileSync('./db/db.json'));
-    if(Array.isArray(db)) {
-        db.push(noteObject);
-    } else {
-        db = [noteObject];
-    }
-    fs.writeFileSync('./db/db.json', db, (err) => {
-        err ? console.error(err) : console.log('write success!');
+    db.push(noteObject);
+    fs.writeFile('./db/db.json', JSON.stringify(db), (err) => {
+        if (err) {
+            res.status(500).json(err);
+        } else {
+            const response = {
+                status: 'success',
+                body: db,
+            }; 
+            console.log(response);
+            res.status(201).json(response);
+        }
     });
 });
 
-app.delete('/api/notes', (req,res) => {
-
+app.delete('/api/notes/:id', (req,res) => {
+    console.log('DELETE REQUEST');
+    let db = JSON.parse(fs.readFileSync('./db/db.json'));
+    let id = req.params.id;
+    console.log(id);
+    const found = db.findIndex((note) => note.id == id);
+    console.log(found);
+    if (found > -1) {
+        const note = db[found];
+        db.splice(found, 1);
+        fs.writeFile('./db/db.json', JSON.stringify(db), (err) => {
+            if (err) {
+                res.status(500).json(err);
+            } else {
+                res.status(200).json({
+                    status: 'success!',
+                    removed: note
+                });
+            }
+        });
+    } else {
+        res.status(500).json({
+            status: 'Failure! ID not found.',
+            removed: 'nothing'
+        });
+    }
 });
 
 app.get('/notes', (req, res) =>
