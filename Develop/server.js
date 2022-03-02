@@ -1,23 +1,27 @@
+// Import npm modules
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-let notes = require('./db/db.json');
-
+// set the listening port and instantiate express
 const PORT = process.env.PORT || 3001;
 const app = express();
 
+// Set express to handle both json and url encoded queries
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
+// Set express to serve static assets from the public diretory
 app.use(express.static('public'));
 
+// return a json array of saved notes
 app.get('/api/notes', (req,res) => {
     console.log('GET REQUEST');
     res.json(JSON.parse(fs.readFileSync('./db/db.json')));
 });
 
+// update the array of saved notes with a new note
 app.post('/api/notes', (req,res) => {
     console.log("POST REQUEST");
     // console.log(req);
@@ -42,6 +46,7 @@ app.post('/api/notes', (req,res) => {
     });
 });
 
+// delete a specific note by way of its id
 app.delete('/api/notes/:id', (req,res) => {
     console.log('DELETE REQUEST');
     let db = JSON.parse(fs.readFileSync('./db/db.json'));
@@ -70,12 +75,15 @@ app.delete('/api/notes/:id', (req,res) => {
     }
 });
 
+// serve the notes page
 app.get('/notes', (req, res) =>
   res.sendFile(path.join(__dirname, '/public/notes.html'))
 );
 
+// serve the index anding page
 app.get('*', (req, res) =>
   res.sendFile(path.join(__dirname, '/public/index.html'))
 );
 
+// start listening on the set port
 app.listen(PORT, () => console.log(`App listening on port ${PORT}`));
